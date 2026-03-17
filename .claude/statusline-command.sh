@@ -113,16 +113,16 @@ format_reset() {
 }
 
 # --- Color palette ---
-C_MODEL=$'\e[38;2;95;175;215m'       # blue: model name
-C_CTX=$'\e[38;2;220;200;50m'         # yellow: context percentage
-C_REPO=$'\e[38;2;80;200;80m'         # green: repo + branch
-C_DIRTY=$'\e[38;2;200;160;50m'       # gold: dirty indicator
-C_DIR=$'\e[38;2;140;140;140m'        # dim gray: directory
-C_PIPE=$'\e[38;2;100;100;100m'       # gray: pipe separators
-C_CURRENT=$'\e[38;2;80;200;80m'      # green: current label
-C_WEEKLY=$'\e[38;2;220;200;50m'      # yellow: weekly label
-C_PCT=$'\e[38;2;220;220;220m'        # bright: percentage text
-C_RESET_TIME=$'\e[38;2;120;120;120m' # dim: reset times
+C_MODEL=$'\e[38;2;100;180;255m'      # sky blue: model name
+C_CTX=$'\e[38;2;140;210;245m'        # ice cyan: context percentage
+C_REPO=$'\e[38;2;80;155;225m'        # medium blue: repo + branch
+C_DIRTY=$'\e[38;2;130;180;230m'      # light blue: dirty indicator
+C_DIR=$'\e[38;2;100;120;155m'        # slate: directory
+C_PIPE=$'\e[38;2;60;75;100m'         # dark blue-gray: pipe separators
+C_CURRENT=$'\e[38;2;70;185;225m'     # cyan-blue: current label
+C_WEEKLY=$'\e[38;2;120;160;210m'     # steel blue: weekly label
+C_PCT=$'\e[38;2;200;215;240m'        # ice white: percentage text
+C_RESET_TIME=$'\e[38;2;90;105;130m'  # muted slate: reset times
 
 PIPE=" ${C_PIPE}|${RESET} "
 
@@ -185,7 +185,7 @@ five_hour_int=0
 [ -n "$five_hour_pct" ] && five_hour_int=$(printf "%.0f" "$five_hour_pct")
 
 five_hour_padded=$(printf "%3d" "$five_hour_int")
-session_bar="${C_CURRENT}current${RESET} $(render_commit_bar "$five_hour_int" "COMMIT" "40;130;40") ${C_PCT}${five_hour_padded}%${RESET}"
+session_bar="${C_CURRENT}current${RESET} $(render_commit_bar "$five_hour_int" "COMMIT" "30;110;170") ${C_PCT}${five_hour_padded}%${RESET}"
 
 session_reset_part=""
 if [ -n "$five_hour_reset" ]; then
@@ -198,7 +198,7 @@ seven_day_int=0
 [ -n "$seven_day_pct" ] && seven_day_int=$(printf "%.0f" "$seven_day_pct")
 
 seven_day_padded=$(printf "%3d" "$seven_day_int")
-weekly_bar="${C_WEEKLY}weekly${RESET}  $(render_commit_bar "$seven_day_int" "COMMIT" "150;140;20") ${C_PCT}${seven_day_padded}%${RESET}"
+weekly_bar="${C_WEEKLY}weekly${RESET}  $(render_commit_bar "$seven_day_int" "COMMIT" "25;65;130") ${C_PCT}${seven_day_padded}%${RESET}"
 
 weekly_reset_part=""
 if [ -n "$seven_day_reset" ]; then
