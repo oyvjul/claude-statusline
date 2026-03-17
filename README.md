@@ -4,6 +4,12 @@ A custom three-line status bar for [Claude Code](https://docs.anthropic.com/en/d
 
 ![Claude Statusline screenshot](static/screenshot.png)
 
+## Tested on
+
+- [x] macOS
+- [ ] Linux
+- [ ] Windows
+
 ## What it shows
 
 **Line 1** — Gradient "COMMIT" label, model name, context window usage %, git branch (with dirty indicator), and repo name
