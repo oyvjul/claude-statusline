@@ -88,7 +88,43 @@ render_badge() {
   printf "%s" $'\e[1;38;2;'"${fg_rgb}"'m'$'\e[48;2;'"${bg_rgb}"'m'" ${text} ${RESET}"
 }
 
-# Backward-compatible wrapper
+# Render a progress bar with text label overlay inside the bar
+# Usage: render_commit_bar <percentage> [label] [fill_rgb]
 render_commit_bar() {
-  render_bar "${1:-0}" "${2:-20}"
+  local used_int="${1:-0}"
+  local BAR_WIDTH=24
+  local LABEL="${2:-COMMIT}"
+  local fill_rgb="${3:-45;90;160}"
+  local LABEL_LEN=${#LABEL}
+  local LABEL_PAD_LEFT=$(( (BAR_WIDTH - LABEL_LEN) / 2 ))
+  local LABEL_PAD_RIGHT=$(( BAR_WIDTH - LABEL_LEN - LABEL_PAD_LEFT ))
+
+  # Build the full bar text (spaces + label + spaces)
+  local bar_text=""
+  local i
+  for (( i=0; i<LABEL_PAD_LEFT; i++ )); do bar_text="${bar_text} "; done
+  bar_text="${bar_text}${LABEL}"
+  for (( i=0; i<LABEL_PAD_RIGHT; i++ )); do bar_text="${bar_text} "; done
+
+  # ANSI color definitions
+  local BG_FILL=$'\e[48;2;'"${fill_rgb}"'m'
+  local BG_EMPTY=$'\e[48;5;234m'
+  local FG_FILL=$'\e[1;38;2;255;255;255m'
+  local FG_EMPTY=$'\e[1;38;5;252m'
+  local RESET=$'\e[0m'
+
+  local fill_cells=$(( used_int * BAR_WIDTH / 100 ))
+  [ "$fill_cells" -gt "$BAR_WIDTH" ] && fill_cells=$BAR_WIDTH
+
+  local bar=""
+  for (( i=0; i<BAR_WIDTH; i++ )); do
+    local ch="${bar_text:$i:1}"
+    if [ "$i" -lt "$fill_cells" ]; then
+      bar="${bar}${BG_FILL}${FG_FILL}${ch}"
+    else
+      bar="${bar}${BG_EMPTY}${FG_EMPTY}${ch}"
+    fi
+  done
+
+  printf "%s%s" "${bar}" "${RESET}"
 }

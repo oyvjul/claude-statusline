@@ -84,19 +84,19 @@ format_reset() {
       const now = new Date();
       if (isNaN(reset)) process.exit();
       const diffMs = reset - now;
-      if (diffMs <= 0) { console.log('↻now'); process.exit(); }
+      if (diffMs <= 0) { console.log('↻ now'); process.exit(); }
       const diffMin = Math.floor(diffMs / 60000);
       if (diffMin < 120) {
         const h = Math.floor(diffMin / 60);
         const m = diffMin % 60;
-        console.log('↻' + (h > 0 ? h + 'h' : '') + (m > 0 || h === 0 ? m + 'm' : ''));
+        console.log('↻ ' + (h > 0 ? h + 'h' : '') + (m > 0 || h === 0 ? m + 'm' : ''));
       } else if (reset.toDateString() === now.toDateString()) {
         // Same day: 7:00pm
         let hr = reset.getHours();
         const mn = String(reset.getMinutes()).padStart(2, '0');
         const ampm = hr >= 12 ? 'pm' : 'am';
         hr = hr % 12 || 12;
-        console.log('↻' + hr + ':' + mn + ampm);
+        console.log('↻ ' + hr + ':' + mn + ampm);
       } else {
         // Different day: mar 10, 10:00am
         const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
@@ -106,7 +106,7 @@ format_reset() {
         const mn = String(reset.getMinutes()).padStart(2, '0');
         const ampm = hr >= 12 ? 'pm' : 'am';
         hr = hr % 12 || 12;
-        console.log('↻' + mon + ' ' + day + ', ' + hr + ':' + mn + ampm);
+        console.log('↻ ' + mon + ' ' + day + ', ' + hr + ':' + mn + ampm);
       }
     } catch {}
   " "$reset_iso" 2>/dev/null
@@ -162,16 +162,22 @@ if [ -n "$git_root" ]; then
   if [ -n "$branch" ]; then
     dirty=""
     dirty_check=$(git -C "$git_root" --no-optional-locks status -s 2>/dev/null | tail -n 1)
-    [ -n "$dirty_check" ] && dirty="${C_DIRTY}*${RESET}"
-    git_part="${C_REPO}${repo_name}${RESET} ${C_REPO}(${branch}${dirty}${C_REPO})${RESET}"
+    [ -n "$dirty_check" ] && dirty="*"
+    git_part="${C_REPO}${branch}${dirty}${RESET}${PIPE}${C_DIR}${repo_name}${RESET}"
   else
     git_part="${C_REPO}${repo_name}${RESET}"
   fi
 fi
 
-# --- Directory ---
+# --- Directory (relative to repo root if inside git repo) ---
 home_dir="$HOME"
-display_dir="${cwd/#$home_dir/~}"
+if [ -n "$git_root" ]; then
+  rel_dir="${cwd#$git_root}"
+  display_dir="${rel_dir:-.}"
+  [ "$display_dir" != "." ] && display_dir=".${rel_dir}"
+else
+  display_dir="${cwd/#$home_dir/~}"
+fi
 dir_part="${C_DIR}${display_dir}${RESET}"
 
 # --- Session (current) bar ---
@@ -179,7 +185,7 @@ five_hour_int=0
 [ -n "$five_hour_pct" ] && five_hour_int=$(printf "%.0f" "$five_hour_pct")
 
 five_hour_padded=$(printf "%3d" "$five_hour_int")
-session_bar="${C_CURRENT}current${RESET} $(render_bar "$five_hour_int" 20 "80;200;80") ${C_PCT}${five_hour_padded}%${RESET}"
+session_bar="${C_CURRENT}current${RESET} $(render_commit_bar "$five_hour_int" "COMMIT" "40;130;40") ${C_PCT}${five_hour_padded}%${RESET}"
 
 session_reset_part=""
 if [ -n "$five_hour_reset" ]; then
@@ -192,7 +198,7 @@ seven_day_int=0
 [ -n "$seven_day_pct" ] && seven_day_int=$(printf "%.0f" "$seven_day_pct")
 
 seven_day_padded=$(printf "%3d" "$seven_day_int")
-weekly_bar="${C_WEEKLY}weekly${RESET}  $(render_bar "$seven_day_int" 20 "220;200;50") ${C_PCT}${seven_day_padded}%${RESET}"
+weekly_bar="${C_WEEKLY}weekly${RESET}  $(render_commit_bar "$seven_day_int" "COMMIT" "150;140;20") ${C_PCT}${seven_day_padded}%${RESET}"
 
 weekly_reset_part=""
 if [ -n "$seven_day_reset" ]; then
@@ -204,8 +210,13 @@ fi
 line1=""
 [ -n "$model_part" ] && line1="${model_part}"
 line1="${line1}${PIPE}${context_part}"
-[ -n "$git_part" ] && line1="${line1}${PIPE}${git_part}"
-line1="${line1}${PIPE}${dir_part}"
+if [ -n "$git_part" ]; then
+  line1="${line1}${PIPE}${git_part}"
+  # Show subdir only if not at repo root
+  [ "$display_dir" != "." ] && line1="${line1}${PIPE}${dir_part}"
+else
+  line1="${line1}${PIPE}${dir_part}"
+fi
 
 # --- Assemble Lines 2-3 ---
 line2="${session_bar}${session_reset_part}"
