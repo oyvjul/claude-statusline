@@ -1,0 +1,4 @@
+*.bak
+.credentials.json
+node_modules/
+.cache/

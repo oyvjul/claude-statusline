@@ -4,24 +4,23 @@
 
 input=$(cat 2>/dev/null || true)
 
+umask 077
+
+# --- Debug logging (set CLAUDE_STATUSLINE_DEBUG=1 to enable) ---
+debug_log() { [ -n "$CLAUDE_STATUSLINE_DEBUG" ] && echo "[statusline] $*" >&2; }
+
 RESET=$'\e[0m'
 
 # --- Load rendering utilities ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/commit-progress-bar.sh"
 
-# --- Parse JSON with node ---
-parse_json() {
-  local field="$1"
-  if [ -n "$input" ]; then
-    node -e "try{const d=JSON.parse(process.argv[1]);const v=$field;if(v!==undefined&&v!==null)console.log(v)}catch{}" "$input" 2>/dev/null
-  fi
-}
-
 # --- Fetch usage from Anthropic API (cached) ---
 USAGE_CACHE_DIR="$HOME/.cache/claude-statusline"
 mkdir -p "$USAGE_CACHE_DIR" 2>/dev/null
-chmod 700 "$USAGE_CACHE_DIR" 2>/dev/null
+if ! chmod 700 "$USAGE_CACHE_DIR" 2>/dev/null; then
+  debug_log "ERROR: cannot secure cache dir $USAGE_CACHE_DIR"
+fi
 USAGE_CACHE="$USAGE_CACHE_DIR/usage-cache.json"
 USAGE_CACHE_MAX_AGE=300  # seconds (5 minutes)
 
@@ -39,11 +38,16 @@ fetch_usage() {
   token=$(node -e "
     try {
       const cp = require('child_process');
+      const fs = require('fs');
+      const os = require('os');
       let creds;
       try {
         creds = cp.execSync('security find-generic-password -s \"Claude Code-credentials\" -w', {encoding:'utf8',stdio:['pipe','pipe','ignore']}).trim();
       } catch {
-        creds = require('fs').readFileSync(require('os').homedir()+'/.claude/.credentials.json','utf8');
+        const p = os.homedir()+'/.claude/.credentials.json';
+        const st = fs.statSync(p);
+        if ((st.mode & 0o077) !== 0) throw new Error('Credentials file permissions too open');
+        creds = fs.readFileSync(p,'utf8');
       }
       const j = JSON.parse(creds);
       if (j.claudeAiOauth?.accessToken) console.log(j.claudeAiOauth.accessToken);
@@ -52,14 +56,15 @@ fetch_usage() {
   [ -z "$token" ] && return
 
   local result
-  result=$(curl -s --max-time 3 \
-    -H "Authorization: Bearer $token" \
+  result=$(printf 'header = "Authorization: Bearer %s"\n' "$token" | curl -s --max-time 3 \
+    -K - \
     -H "anthropic-beta: oauth-2025-04-20" \
     -H "Content-Type: application/json" \
     "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
 
   if [ -n "$result" ]; then
     echo "$result" > "$USAGE_CACHE"
+    chmod 600 "$USAGE_CACHE" 2>/dev/null
     echo "$result"
   fi
 }
@@ -153,14 +158,14 @@ model_part=""
 [ -n "$model_version" ] && model_part="${C_MODEL}${model_version}${RESET}"
 
 # --- Context percentage ---
-used=$(parse_json "d.context_window?.used_percentage")
+used=$([ -n "$input" ] && node -e "try{const d=JSON.parse(process.argv[1]);const v=d.context_window?.used_percentage;if(v!=null)console.log(v)}catch{}" "$input" 2>/dev/null)
 used_int=0
 [ -n "$used" ] && used_int=$(printf "%.0f" "$used")
 
 context_part="✍️ ${C_CTX}${used_int}%${RESET}"
 
 # --- Git: repo (branch*) ---
-cwd=$(parse_json "d.workspace?.current_dir||d.cwd")
+cwd=$([ -n "$input" ] && node -e "try{const d=JSON.parse(process.argv[1]);const v=d.workspace?.current_dir||d.cwd;if(v!=null)console.log(v)}catch{}" "$input" 2>/dev/null)
 [ -z "$cwd" ] && cwd=$(pwd)
 
 git_root=$(git -C "$cwd" --no-optional-locks rev-parse --show-toplevel 2>/dev/null)
@@ -169,6 +174,7 @@ if [ -n "$git_root" ]; then
   repo_name=$(basename "$git_root")
   branch=$(git -C "$git_root" --no-optional-locks branch --show-current 2>/dev/null)
   [ -z "$branch" ] && branch=$(git -C "$git_root" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null)
+  branch="${branch//[$'\e']/}"
   if [ -n "$branch" ]; then
     dirty=""
     dirty_check=$(git -C "$git_root" --no-optional-locks status -s 2>/dev/null | tail -n 1)

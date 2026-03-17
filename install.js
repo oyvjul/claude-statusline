@@ -7,7 +7,7 @@ const CLAUDE_DIR = path.join(os.homedir(), ".claude");
 const FILES = ["statusline-command.sh", "commit-progress-bar.sh"];
 
 // Ensure ~/.claude/ exists
-fs.mkdirSync(CLAUDE_DIR, { recursive: true });
+fs.mkdirSync(CLAUDE_DIR, { recursive: true, mode: 0o700 });
 
 for (const file of FILES) {
   const src = path.join(REPO_DIR, ".claude", file);
@@ -36,8 +36,12 @@ for (const file of FILES) {
       console.log(`Replacing symlink: ${dest} (was -> ${existing})`);
       fs.unlinkSync(dest);
     } else {
-      console.log(`Backing up existing ${dest} -> ${dest}.bak`);
-      fs.renameSync(dest, `${dest}.bak`);
+      const bakDest = `${dest}.bak`;
+      if (fs.existsSync(bakDest)) {
+        console.warn(`WARNING: overwriting existing backup ${bakDest}`);
+      }
+      console.log(`Backing up existing ${dest} -> ${bakDest}`);
+      fs.renameSync(dest, bakDest);
     }
   }
 
@@ -55,8 +59,16 @@ const statusLineConfig = {
 let settings = {};
 if (fs.existsSync(settingsPath)) {
   try {
-    settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
-  } catch {
+    const raw = fs.readFileSync(settingsPath, "utf8");
+    settings = JSON.parse(raw);
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      const backupPath = `${settingsPath}.bak`;
+      fs.copyFileSync(settingsPath, backupPath);
+      console.warn(
+        `WARNING: settings.json has invalid JSON (${e.message}). Backed up to ${backupPath}`
+      );
+    }
     settings = {};
   }
 }
