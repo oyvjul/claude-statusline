@@ -1,4 +1,4 @@
-import { ansi, ansiBg, RESET } from "./ansi.js";
+import { ansi, ansiBg, RESET } from "./utils/ansi.js";
 import type { RGB } from "./types.js";
 
 // Sub-character block elements (1/8 through 7/8)

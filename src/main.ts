@@ -1,15 +1,15 @@
 import os from "node:os";
-import { ansi, RESET } from "./ansi.js";
+import { ansi, RESET } from "./utils/ansi.js";
 import { renderCommitBar } from "./render.js";
-import { fetchUsage, debugLog } from "./usage.js";
-import { getGitInfo } from "./git.js";
-import { formatReset } from "./format.js";
+import { fetchUsage, debugLog } from "./utils/api.js";
+import { getGitInfo } from "./utils/git.js";
+import { formatReset } from "./utils/format.js";
 import type { StatusInput, RGB } from "./types.js";
 
-// --- Security ---
+// Security
 process.umask(0o077);
 
-// --- Color palette ---
+// Color palette
 const C_MODEL = ansi(100, 180, 255); // sky blue
 const C_CTX = ansi(140, 210, 245); // ice cyan
 const C_REPO = ansi(80, 155, 225); // medium blue
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   const gitInfo = getGitInfo(cwd);
   const usage = await usagePromise;
 
-  // --- Model name ---
+  // Model name
   const displayName = data.model?.display_name || "";
   const modelId = data.model?.id || "";
   const verMatch = modelId.match(/(\d+)-(\d+)(?:-\d+)?$/);
@@ -75,14 +75,15 @@ async function main(): Promise<void> {
 
   const modelPart = modelVersion ? `${C_MODEL}${modelVersion}${RESET}` : "";
 
-  // --- Context percentage ---
+  // Context percentage
   const usedPct = data.context_window?.used_percentage;
   const usedInt = usedPct != null ? Math.round(usedPct) : 0;
   const contextPart = `\u270d\ufe0f ${C_CTX}${usedInt}%${RESET}`;
 
-  // --- Git part ---
+  // Git part
   let gitPart = "";
   let displayDir = "";
+
   if (gitInfo) {
     if (gitInfo.branch) {
       gitPart = `${C_REPO}${gitInfo.branch}${gitInfo.dirty}${RESET}${PIPE}${C_DIR}${gitInfo.repoName}${RESET}`;
@@ -101,7 +102,7 @@ async function main(): Promise<void> {
   }
   const dirPart = `${C_DIR}${displayDir}${RESET}`;
 
-  // --- Usage bars ---
+  // Usage bars
   const fiveHourPct = usage?.five_hour?.utilization;
   const fiveHourReset = usage?.five_hour?.resets_at;
   const sevenDayPct = usage?.seven_day?.utilization;
@@ -125,7 +126,7 @@ async function main(): Promise<void> {
     ? `  ${C_RESET_TIME}${weeklyResetFmt}${RESET}`
     : "";
 
-  // --- Assemble Line 1 ---
+  // Assemble Line 1
   let line1 = `${commitGradient} ${C_PIPE}\u00b7${RESET} `;
   if (modelPart) line1 += modelPart;
   line1 += PIPE + contextPart;
@@ -136,11 +137,11 @@ async function main(): Promise<void> {
     line1 += PIPE + dirPart;
   }
 
-  // --- Assemble Lines 2-3 ---
+  // Assemble Lines 2-3
   const line2 = sessionBar + sessionResetPart;
   const line3 = weeklyBar + weeklyResetPart;
 
-  // --- Print ---
+  // Print
   process.stdout.write(`${line1}\n${line2}\n${line3}\n`);
 }
 

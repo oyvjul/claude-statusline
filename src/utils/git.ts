@@ -1,6 +1,6 @@
 import path from "node:path";
 import { execSync } from "node:child_process";
-import type { GitInfo } from "./types.js";
+import type { GitInfo } from "../types.js";
 
 export function run(cmd: string, cwd: string): string {
   return execSync(cmd, {
@@ -16,13 +16,18 @@ export function getGitInfo(cwd: string): GitInfo | null {
       "git --no-optional-locks rev-parse --show-toplevel",
       cwd,
     );
-    if (!gitRoot) return null;
+
+    if (!gitRoot) {
+      return null;
+    }
 
     const repoName = path.basename(gitRoot);
     let branch = "";
+
     try {
       branch = run("git --no-optional-locks branch --show-current", gitRoot);
     } catch {}
+
     if (!branch) {
       try {
         branch = run(
@@ -31,16 +36,18 @@ export function getGitInfo(cwd: string): GitInfo | null {
         );
       } catch {}
     }
+
     // Sanitize ANSI from branch name
     branch = branch.replace(/\x1b/g, "");
 
     let dirty: "" | "*" = "";
-    if (branch) {
-      try {
-        const status = run("git --no-optional-locks status -s", gitRoot);
-        if (status) dirty = "*";
-      } catch {}
-    }
+    try {
+      const status = run("git --no-optional-locks status -s", gitRoot);
+
+      if (branch && status) {
+        dirty = "*";
+      }
+    } catch {}
 
     return { gitRoot, repoName, branch, dirty };
   } catch {
