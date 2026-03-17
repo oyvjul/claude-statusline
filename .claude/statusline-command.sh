@@ -124,6 +124,14 @@ C_WEEKLY=$'\e[38;2;120;160;210m'     # steel blue: weekly label
 C_PCT=$'\e[38;2;200;215;240m'        # ice white: percentage text
 C_RESET_TIME=$'\e[38;2;90;105;130m'  # muted slate: reset times
 
+# COMMIT gradient (deep blue → light cyan)
+C_CO1=$'\e[1;38;2;60;120;200m'
+C_CO2=$'\e[1;38;2;80;145;215m'
+C_CO3=$'\e[1;38;2;100;165;230m'
+C_CO4=$'\e[1;38;2;120;185;240m'
+C_CO5=$'\e[1;38;2;140;200;245m'
+C_CO6=$'\e[1;38;2;160;215;250m'
+
 PIPE=" ${C_PIPE}|${RESET} "
 
 # --- Model name (plain text, blue) ---
@@ -138,6 +146,8 @@ model_version=$(node -e "
     if(name&&ver)console.log(name+' '+ver);
     else if(name)console.log(name);
   }catch{}" "$input" 2>/dev/null)
+
+commit_gradient="${C_CO1}C${C_CO2}O${C_CO3}M${C_CO4}M${C_CO5}I${C_CO6}T${RESET}"
 
 model_part=""
 [ -n "$model_version" ] && model_part="${C_MODEL}${model_version}${RESET}"
@@ -207,8 +217,8 @@ if [ -n "$seven_day_reset" ]; then
 fi
 
 # --- Assemble Line 1 ---
-line1=""
-[ -n "$model_part" ] && line1="${model_part}"
+line1="${commit_gradient} ${C_PIPE}·${RESET} "
+[ -n "$model_part" ] && line1="${line1}${model_part}"
 line1="${line1}${PIPE}${context_part}"
 if [ -n "$git_part" ]; then
   line1="${line1}${PIPE}${git_part}"
