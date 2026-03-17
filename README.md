@@ -43,14 +43,14 @@ Restart Claude Code to see the status line.
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `src/*.ts` | TypeScript source — main logic, rendering, ANSI helpers, git info, usage fetching, formatting |
-| `src/types.ts` | Shared interfaces (`StatusInput`, `UsageData`, `GitInfo`) and type alias (`RGB`) |
-| `dist/*.js` | Compiled ESM output (gitignored) |
-| `.claude/statusline-command.js` | Thin entry point (3-line wrapper) referenced by `~/.claude/settings.json` |
-| `install.js` | Configures `~/.claude/settings.json` to point to this repo |
-| `tsconfig.json` | TypeScript config (`strict`, `noUncheckedIndexedAccess`, ESM/nodenext) |
+| File                            | Purpose                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| `src/*.ts`                      | TypeScript source — main logic, rendering, ANSI helpers, git info, usage fetching, formatting |
+| `src/types.ts`                  | Shared interfaces (`StatusInput`, `UsageData`, `GitInfo`) and type alias (`RGB`)              |
+| `dist/*.js`                     | Compiled ESM output (gitignored)                                                              |
+| `.claude/statusline-command.js` | Thin entry point (3-line wrapper) referenced by `~/.claude/settings.json`                     |
+| `install.js`                    | Configures `~/.claude/settings.json` to point to this repo                                    |
+| `tsconfig.json`                 | TypeScript config (`strict`, `noUncheckedIndexedAccess`, ESM/nodenext)                        |
 
 ## Customization
 
