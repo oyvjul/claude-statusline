@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 
-# Claude Code status line script
+# Claude Code status line script — 3-line layout
 
 input=$(cat 2>/dev/null || true)
 
-# Colors
-DIM=$'\e[38;5;242m'
-WHITE=$'\e[38;5;252m'
 RESET=$'\e[0m'
 
-SEP="${DIM} │ ${RESET}"
-
-# --- Load progress bar ---
+# --- Load rendering utilities ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/commit-progress-bar.sh"
 
@@ -31,7 +26,6 @@ USAGE_CACHE="$USAGE_CACHE_DIR/usage-cache.json"
 USAGE_CACHE_MAX_AGE=300  # seconds (5 minutes)
 
 fetch_usage() {
-  # Check cache freshness
   if [ -f "$USAGE_CACHE" ]; then
     local cache_age
     cache_age=$(( $(date +%s) - $(stat -f %m "$USAGE_CACHE" 2>/dev/null || stat -c %Y "$USAGE_CACHE" 2>/dev/null || echo 0) ))
@@ -41,7 +35,6 @@ fetch_usage() {
     fi
   fi
 
-  # Get OAuth token: macOS Keychain, then Linux/WSL fallback
   local token
   token=$(node -e "
     try {
@@ -58,7 +51,6 @@ fetch_usage() {
   " 2>/dev/null)
   [ -z "$token" ] && return
 
-  # Fetch usage data
   local result
   result=$(curl -s --max-time 3 \
     -H "Authorization: Bearer $token" \
@@ -74,7 +66,7 @@ fetch_usage() {
 
 usage_json=$(fetch_usage)
 
-# Extract 5-hour and 7-day usage data
+# Extract usage data
 if [ -n "$usage_json" ]; then
   five_hour_pct=$(node -e "try{const d=JSON.parse(process.argv[1]);if(d.five_hour?.utilization!=null)console.log(d.five_hour.utilization)}catch{}" "$usage_json" 2>/dev/null)
   five_hour_reset=$(node -e "try{const d=JSON.parse(process.argv[1]);if(d.five_hour?.resets_at)console.log(d.five_hour.resets_at)}catch{}" "$usage_json" 2>/dev/null)
@@ -82,69 +74,142 @@ if [ -n "$usage_json" ]; then
   seven_day_reset=$(node -e "try{const d=JSON.parse(process.argv[1]);if(d.seven_day?.resets_at)console.log(d.seven_day.resets_at)}catch{}" "$usage_json" 2>/dev/null)
 fi
 
-# --- Context bar ---
+# --- Smart reset countdown (12-hour am/pm format) ---
+format_reset() {
+  local reset_iso="$1"
+  [ -z "$reset_iso" ] && return
+  node -e "
+    try {
+      const reset = new Date(process.argv[1]);
+      const now = new Date();
+      if (isNaN(reset)) process.exit();
+      const diffMs = reset - now;
+      if (diffMs <= 0) { console.log('↻now'); process.exit(); }
+      const diffMin = Math.floor(diffMs / 60000);
+      if (diffMin < 120) {
+        const h = Math.floor(diffMin / 60);
+        const m = diffMin % 60;
+        console.log('↻' + (h > 0 ? h + 'h' : '') + (m > 0 || h === 0 ? m + 'm' : ''));
+      } else if (reset.toDateString() === now.toDateString()) {
+        // Same day: 7:00pm
+        let hr = reset.getHours();
+        const mn = String(reset.getMinutes()).padStart(2, '0');
+        const ampm = hr >= 12 ? 'pm' : 'am';
+        hr = hr % 12 || 12;
+        console.log('↻' + hr + ':' + mn + ampm);
+      } else {
+        // Different day: mar 10, 10:00am
+        const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+        const mon = months[reset.getMonth()];
+        const day = reset.getDate();
+        let hr = reset.getHours();
+        const mn = String(reset.getMinutes()).padStart(2, '0');
+        const ampm = hr >= 12 ? 'pm' : 'am';
+        hr = hr % 12 || 12;
+        console.log('↻' + mon + ' ' + day + ', ' + hr + ':' + mn + ampm);
+      }
+    } catch {}
+  " "$reset_iso" 2>/dev/null
+}
+
+# --- Color palette ---
+C_MODEL=$'\e[38;2;95;175;215m'       # blue: model name
+C_CTX=$'\e[38;2;220;200;50m'         # yellow: context percentage
+C_REPO=$'\e[38;2;80;200;80m'         # green: repo + branch
+C_DIRTY=$'\e[38;2;200;160;50m'       # gold: dirty indicator
+C_DIR=$'\e[38;2;140;140;140m'        # dim gray: directory
+C_PIPE=$'\e[38;2;100;100;100m'       # gray: pipe separators
+C_CURRENT=$'\e[38;2;80;200;80m'      # green: current label
+C_WEEKLY=$'\e[38;2;220;200;50m'      # yellow: weekly label
+C_PCT=$'\e[38;2;220;220;220m'        # bright: percentage text
+C_RESET_TIME=$'\e[38;2;120;120;120m' # dim: reset times
+
+PIPE=" ${C_PIPE}|${RESET} "
+
+# --- Model name (plain text, blue) ---
+model_version=$(node -e "
+  try{
+    const d=JSON.parse(process.argv[1]);
+    const name=d.model?.display_name||'';
+    const id=d.model?.id||'';
+    // Extract version: claude-opus-4-6 -> 4.6, claude-sonnet-4-5 -> 4.5
+    const m=id.match(/(\d+)-(\d+)(?:-\d+)?$/);
+    const ver=m?m[1]+'.'+m[2]:'';
+    if(name&&ver)console.log(name+' '+ver);
+    else if(name)console.log(name);
+  }catch{}" "$input" 2>/dev/null)
+
+model_part=""
+[ -n "$model_version" ] && model_part="${C_MODEL}${model_version}${RESET}"
+
+# --- Context percentage ---
 used=$(parse_json "d.context_window?.used_percentage")
+used_int=0
+[ -n "$used" ] && used_int=$(printf "%.0f" "$used")
 
-if [ -n "$used" ]; then
-  used_int=$(printf "%.0f" "$used")
-  context_part="$(render_commit_bar "$used_int" "CONTEXT") ${WHITE}${used_int}%${RESET}"
-else
-  context_part="$(render_commit_bar 0 "CONTEXT") ${DIM}0%${RESET}"
-fi
+context_part="✍️ ${C_CTX}${used_int}%${RESET}"
 
-# --- Session (5-hour) bar ---
-if [ -n "$five_hour_pct" ]; then
-  five_hour_int=$(printf "%.0f" "$five_hour_pct")
-  session_bar="$(render_commit_bar "$five_hour_int" "SESSION") ${WHITE}${five_hour_int}%${RESET}"
-else
-  session_bar="$(render_commit_bar 0 "SESSION") ${DIM}0%${RESET}"
-fi
-
-session_reset_part=""
-if [ -n "$five_hour_reset" ]; then
-  reset_time=$(node -e "try{const d=new Date(process.argv[1]);if(!isNaN(d))console.log(d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false}))}catch{}" "$five_hour_reset" 2>/dev/null)
-  [ -n "$reset_time" ] && session_reset_part=" ${DIM}resets ${reset_time}${RESET}"
-fi
-
-# --- Weekly (7-day) bar ---
-if [ -n "$seven_day_pct" ]; then
-  seven_day_int=$(printf "%.0f" "$seven_day_pct")
-  weekly_bar="$(render_commit_bar "$seven_day_int" "WEEKLY") ${WHITE}${seven_day_int}%${RESET}"
-else
-  weekly_bar="$(render_commit_bar 0 "WEEKLY") ${DIM}0%${RESET}"
-fi
-
-weekly_reset_part=""
-if [ -n "$seven_day_reset" ]; then
-  weekly_reset_time=$(node -e "try{const d=new Date(process.argv[1]);if(!isNaN(d)){const day=d.toLocaleDateString([],{weekday:'short'});const time=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});console.log(day+' '+time)}}catch{}" "$seven_day_reset" 2>/dev/null)
-  [ -n "$weekly_reset_time" ] && weekly_reset_part=" ${DIM}resets ${weekly_reset_time}${RESET}"
-fi
-
-# --- Git branch + dirty ---
+# --- Git: repo (branch*) ---
 cwd=$(parse_json "d.workspace?.current_dir||d.cwd")
 [ -z "$cwd" ] && cwd=$(pwd)
 
 git_root=$(git -C "$cwd" --no-optional-locks rev-parse --show-toplevel 2>/dev/null)
-branch_part=""
+git_part=""
 if [ -n "$git_root" ]; then
+  repo_name=$(basename "$git_root")
   branch=$(git -C "$git_root" --no-optional-locks branch --show-current 2>/dev/null)
-  if [ -z "$branch" ]; then
-    branch=$(git -C "$git_root" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null)
-  fi
+  [ -z "$branch" ] && branch=$(git -C "$git_root" --no-optional-locks symbolic-ref --short HEAD 2>/dev/null)
   if [ -n "$branch" ]; then
     dirty=""
     dirty_check=$(git -C "$git_root" --no-optional-locks status -s 2>/dev/null | tail -n 1)
-    [ -n "$dirty_check" ] && dirty=" "$'\e[38;2;70;130;210m'"*"
-    branch_part="${SEP}${WHITE} ${branch}${dirty}${RESET}"
+    [ -n "$dirty_check" ] && dirty="${C_DIRTY}*${RESET}"
+    git_part="${C_REPO}${repo_name}${RESET} ${C_REPO}(${branch}${dirty}${C_REPO})${RESET}"
+  else
+    git_part="${C_REPO}${repo_name}${RESET}"
   fi
 fi
 
-# --- Current directory (compact: last 2 segments) ---
+# --- Directory ---
 home_dir="$HOME"
 display_dir="${cwd/#$home_dir/~}"
-short_dir=$(echo "$display_dir" | awk -F/ '{if(NF<=2)print $0; else print $(NF-1)"/"$NF}')
-dir_part="${SEP}${WHITE}${short_dir}${RESET}"
+dir_part="${C_DIR}${display_dir}${RESET}"
 
-# --- Print status line (two lines) ---
-printf "%s%s%s%s\n" "${context_part}" "${SEP}" "${branch_part#${SEP}}" "${dir_part}"
-printf "%s%s${SEP}%s%s\n" "${session_bar}" "${session_reset_part}" "${weekly_bar}" "${weekly_reset_part}"
+# --- Session (current) bar ---
+five_hour_int=0
+[ -n "$five_hour_pct" ] && five_hour_int=$(printf "%.0f" "$five_hour_pct")
+
+five_hour_padded=$(printf "%3d" "$five_hour_int")
+session_bar="${C_CURRENT}current${RESET} $(render_bar "$five_hour_int" 20 "80;200;80") ${C_PCT}${five_hour_padded}%${RESET}"
+
+session_reset_part=""
+if [ -n "$five_hour_reset" ]; then
+  reset_fmt=$(format_reset "$five_hour_reset")
+  [ -n "$reset_fmt" ] && session_reset_part="  ${C_RESET_TIME}${reset_fmt}${RESET}"
+fi
+
+# --- Weekly bar ---
+seven_day_int=0
+[ -n "$seven_day_pct" ] && seven_day_int=$(printf "%.0f" "$seven_day_pct")
+
+seven_day_padded=$(printf "%3d" "$seven_day_int")
+weekly_bar="${C_WEEKLY}weekly${RESET}  $(render_bar "$seven_day_int" 20 "220;200;50") ${C_PCT}${seven_day_padded}%${RESET}"
+
+weekly_reset_part=""
+if [ -n "$seven_day_reset" ]; then
+  weekly_reset_fmt=$(format_reset "$seven_day_reset")
+  [ -n "$weekly_reset_fmt" ] && weekly_reset_part="  ${C_RESET_TIME}${weekly_reset_fmt}${RESET}"
+fi
+
+# --- Assemble Line 1 ---
+line1=""
+[ -n "$model_part" ] && line1="${model_part}"
+line1="${line1}${PIPE}${context_part}"
+[ -n "$git_part" ] && line1="${line1}${PIPE}${git_part}"
+line1="${line1}${PIPE}${dir_part}"
+
+# --- Assemble Lines 2-3 ---
+line2="${session_bar}${session_reset_part}"
+line3="${weekly_bar}${weekly_reset_part}"
+
+# --- Print ---
+printf "%s\n%s\n%s\n" "$line1" "$line2" "$line3"
