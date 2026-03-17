@@ -1,0 +1,8 @@
+{
+  "name": "claude-statusline",
+  "version": "1.0.0",
+  "description": "Custom status line for Claude Code showing model, context, rate limits, git info, and working directory",
+  "scripts": {
+    "postinstall": "node install.js"
+  }
+}

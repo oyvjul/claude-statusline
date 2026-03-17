@@ -6,7 +6,7 @@ Custom status line for Claude Code showing model identity, context usage, sessio
 
 - `.claude/statusline-command.sh` — Main statusline script, renders three-line status bar
 - `.claude/commit-progress-bar.sh` — Rendering utilities: progress bars with sub-character precision and optional explicit color, colored badges
-- `install.sh` — Creates symlinks from `~/.claude/` into this repo
+- `install.js` — Creates symlinks from `~/.claude/` into this repo (runs automatically via `npm install`)
 
 The install script:
 
@@ -14,6 +14,7 @@ The install script:
 - Backs up any existing files to `*.bak`
 - Adds `statusLine` config to `~/.claude/settings.json` if missing
 - Is idempotent (safe to re-run)
+- Runs as a `postinstall` hook — just run `npm install`
 
 ## How it works
 
