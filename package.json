@@ -1,7 +1,11 @@
 {
   "name": "claude-statusline",
   "version": "1.0.0",
+  "type": "module",
   "description": "Custom status line for Claude Code showing model, context, rate limits, git info, and working directory",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "postinstall": "node install.js"
   }

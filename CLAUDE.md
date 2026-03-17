@@ -4,13 +4,19 @@ Custom status line for Claude Code showing model identity, context usage, sessio
 
 ## Structure
 
-- `.claude/statusline-command.sh` — Main statusline script, renders three-line status bar
-- `.claude/commit-progress-bar.sh` — Rendering utilities: progress bars with sub-character precision and optional explicit color, colored badges
-- `install.js` — Creates symlinks from `~/.claude/` into this repo (runs automatically via `npm install`)
+- `.claude/statusline-command.js` — Thin entry point (3-line wrapper), gets symlinked into `~/.claude/`
+- `src/main.js` — Async main: stdin, line assembly, color palette, stdout
+- `src/render.js` — `renderCommitBar`, `renderBar`, `renderBadge`, `getThresholdColor`
+- `src/ansi.js` — `ansi()`, `ansiBg()`, `RESET`
+- `src/usage.js` — `getOAuthToken()`, `fetchUsage()`, cache constants, `debugLog`
+- `src/git.js` — `getGitInfo()`, `run()` helper
+- `src/format.js` — `formatReset()`
+- `install.js` — Creates symlink from `~/.claude/` into this repo (runs automatically via `npm install`)
 
 The install script:
 
-- Symlinks `.claude/*.sh` into `~/.claude/`
+- Symlinks `.claude/statusline-command.js` into `~/.claude/`
+- Cleans up old symlinks (`*.sh`, `commit-progress-bar.js`)
 - Backs up any existing files to `*.bak`
 - Adds `statusLine` config to `~/.claude/settings.json` if missing
 - Is idempotent (safe to re-run)
@@ -18,7 +24,7 @@ The install script:
 
 ## How it works
 
-The statusline command receives JSON from Claude Code via stdin with context window, model, and cost info. It also fetches usage data from the Anthropic API (cached for 5 minutes via OAuth token from macOS Keychain or `~/.claude/.credentials.json`).
+The statusline command receives JSON from Claude Code via stdin with context window, model, and cost info. It also fetches usage data from the Anthropic API (cached for 5 minutes via OAuth token from macOS Keychain or `~/.claude/.credentials.json`). Uses ESM imports, Node.js `fetch()` for HTTP, and `child_process.execSync` for git commands.
 
 **Line 1:** Model name in blue | ✍️ context % in yellow | repo (branch*) in green | directory in gray — pipe-separated
 **Line 2:** `current` label (green) + green progress bar + percentage + reset countdown
@@ -33,7 +39,7 @@ The statusline command receives JSON from Claude Code via stdin with context win
 
 ## Dependencies
 
-- `bash`, `node`, `curl`, `git`
+- `node` (18+), `git`
 
 ## Rules
 

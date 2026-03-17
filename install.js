@@ -1,10 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { fileURLToPath } from "node:url";
 
-const REPO_DIR = __dirname;
+const REPO_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
-const FILES = ["statusline-command.sh", "commit-progress-bar.sh"];
+const FILES = ["statusline-command.js"];
+const OLD_FILES = ["statusline-command.sh"];
 
 // Ensure ~/.claude/ exists
 fs.mkdirSync(CLAUDE_DIR, { recursive: true, mode: 0o700 });
@@ -49,11 +51,28 @@ for (const file of FILES) {
   console.log(`Linked: ${dest} -> ${src}`);
 }
 
+// Cleanup old .sh symlinks if they point into this repo
+for (const oldFile of OLD_FILES) {
+  const oldDest = path.join(CLAUDE_DIR, oldFile);
+  try {
+    const st = fs.lstatSync(oldDest);
+    if (st.isSymbolicLink()) {
+      const target = fs.readlinkSync(oldDest);
+      if (target.startsWith(path.join(REPO_DIR, ".claude"))) {
+        fs.unlinkSync(oldDest);
+        console.log(`Removed old symlink: ${oldDest}`);
+      }
+    }
+  } catch {
+    /* doesn't exist, ignore */
+  }
+}
+
 // Ensure settings.json has the statusLine config
 const settingsPath = path.join(CLAUDE_DIR, "settings.json");
 const statusLineConfig = {
   type: "command",
-  command: `bash ${CLAUDE_DIR}/statusline-command.sh`,
+  command: `node ${CLAUDE_DIR}/statusline-command.js`,
 };
 
 let settings = {};
@@ -66,22 +85,30 @@ if (fs.existsSync(settingsPath)) {
       const backupPath = `${settingsPath}.bak`;
       fs.copyFileSync(settingsPath, backupPath);
       console.warn(
-        `WARNING: settings.json has invalid JSON (${e.message}). Backed up to ${backupPath}`
+        `WARNING: settings.json has invalid JSON (${e.message}). Backed up to ${backupPath}`,
       );
     }
     settings = {};
   }
 }
 
+// Migrate from old bash command to new node command
 if (settings.statusLine) {
-  console.log("statusLine already configured in settings.json");
+  const cmd = settings.statusLine.command || "";
+  if (cmd.includes("statusline-command.sh")) {
+    settings.statusLine = statusLineConfig;
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
+    console.log("Migrated statusLine command from .sh to .js in settings.json");
+  } else {
+    console.log("statusLine already configured in settings.json");
+  }
 } else {
   settings.statusLine = statusLineConfig;
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
   console.log(
     fs.existsSync(settingsPath)
       ? "Added statusLine config to settings.json"
-      : "Created settings.json with statusLine config"
+      : "Created settings.json with statusLine config",
   );
 }
 
