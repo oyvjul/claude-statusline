@@ -109,8 +109,8 @@ render_commit_bar() {
   # ANSI color definitions
   local BG_FILL=$'\e[48;2;'"${fill_rgb}"'m'
   local BG_EMPTY=$'\e[48;5;234m'
-  local FG_FILL=$'\e[1;38;2;255;255;255m'
-  local FG_EMPTY=$'\e[1;38;5;252m'
+  local FG_FILL=$'\e[1;38;2;200;200;200m'
+  local FG_EMPTY=$'\e[1;38;2;120;120;120m'
   local RESET=$'\e[0m'
 
   local fill_cells=$(( used_int * BAR_WIDTH / 100 ))
