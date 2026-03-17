@@ -4,13 +4,13 @@
  * - Same day: 12-hour am/pm
  * - Otherwise: lowercase month+day
  */
-export function formatReset(isoDate) {
+export function formatReset(isoDate: string | undefined | null): string {
   if (!isoDate) return "";
   const reset = new Date(isoDate);
   const now = new Date();
-  if (isNaN(reset)) return "";
+  if (isNaN(reset.getTime())) return "";
 
-  const diffMs = reset - now;
+  const diffMs = reset.getTime() - now.getTime();
   if (diffMs <= 0) return "\u21bb now";
 
   const diffMin = Math.floor(diffMs / 60000);

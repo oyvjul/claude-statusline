@@ -1,13 +1,13 @@
 import { ansi, ansiBg, RESET } from "./ansi.js";
+import type { RGB } from "./types.js";
 
 // Sub-character block elements (1/8 through 7/8)
 const BAR_BLOCKS = ["\u258f", "\u258e", "\u258d", "\u258c", "\u258b", "\u258a", "\u2589"];
 
 /**
  * Get threshold color RGB based on percentage.
- * @returns {[number,number,number]}
  */
-export function getThresholdColor(pct) {
+export function getThresholdColor(pct: number): RGB {
   if (pct >= 90) return [90, 170, 255];
   if (pct >= 75) return [60, 145, 230];
   if (pct >= 50) return [45, 115, 195];
@@ -16,12 +16,8 @@ export function getThresholdColor(pct) {
 
 /**
  * Render a progress bar with sub-character precision.
- * @param {number} pct - Percentage (0-100)
- * @param {number} width - Bar width in characters
- * @param {[number,number,number]} [colorRgb] - Explicit RGB color, or threshold-based
- * @returns {string}
  */
-export function renderBar(pct, width = 20, colorRgb) {
+export function renderBar(pct: number, width = 20, colorRgb?: RGB): string {
   pct = Math.max(0, Math.min(100, pct || 0));
   const [r, g, b] = colorRgb || getThresholdColor(pct);
 
@@ -45,7 +41,7 @@ export function renderBar(pct, width = 20, colorRgb) {
 
   // Fractional cell
   if (fillCells < width && subIndex > 0) {
-    bar += BG_EMPTY + FG_FILL + BAR_BLOCKS[subIndex - 1];
+    bar += BG_EMPTY + FG_FILL + (BAR_BLOCKS[subIndex - 1] ?? " ");
     fillCells++;
   }
 
@@ -59,12 +55,8 @@ export function renderBar(pct, width = 20, colorRgb) {
 
 /**
  * Render a colored badge with background.
- * @param {string} text
- * @param {[number,number,number]} fgRgb
- * @param {[number,number,number]} bgRgb
- * @returns {string}
  */
-export function renderBadge(text, fgRgb, bgRgb) {
+export function renderBadge(text: string, fgRgb: RGB, bgRgb: RGB): string {
   const [fr, fg, fb] = fgRgb;
   const [br, bg, bb] = bgRgb;
   return `\x1b[1;38;2;${fr};${fg};${fb}m${ansiBg(br, bg, bb)} ${text} ${RESET}`;
@@ -72,12 +64,8 @@ export function renderBadge(text, fgRgb, bgRgb) {
 
 /**
  * Render a progress bar with centered text label overlay.
- * @param {number} pct - Percentage (0-100)
- * @param {string} [label='COMMIT']
- * @param {[number,number,number]} [fillRgb=[45,90,160]]
- * @returns {string}
  */
-export function renderCommitBar(pct, label = "COMMIT", fillRgb = [45, 90, 160]) {
+export function renderCommitBar(pct: number, label = "COMMIT", fillRgb: RGB = [45, 90, 160]): string {
   const BAR_WIDTH = 24;
   pct = Math.max(0, Math.min(100, pct || 0));
 
@@ -96,7 +84,7 @@ export function renderCommitBar(pct, label = "COMMIT", fillRgb = [45, 90, 160]) 
 
   let bar = "";
   for (let i = 0; i < BAR_WIDTH; i++) {
-    const ch = barText[i];
+    const ch = barText[i] ?? " ";
     if (i < fillCells) {
       bar += BG_FILL + FG_FILL + ch;
     } else {

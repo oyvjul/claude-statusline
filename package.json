@@ -4,9 +4,14 @@
   "type": "module",
   "description": "Custom status line for Claude Code showing model, context, rate limits, git info, and working directory",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
-    "postinstall": "node install.js"
+    "build": "tsc",
+    "configure": "node install.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.8"
   }
 }

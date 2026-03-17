@@ -1,7 +1,8 @@
 import path from "node:path";
 import { execSync } from "node:child_process";
+import type { GitInfo } from "./types.js";
 
-export function run(cmd, cwd) {
+export function run(cmd: string, cwd: string): string {
   return execSync(cmd, {
     encoding: "utf8",
     cwd,
@@ -9,7 +10,7 @@ export function run(cmd, cwd) {
   }).trim();
 }
 
-export function getGitInfo(cwd) {
+export function getGitInfo(cwd: string): GitInfo | null {
   try {
     const gitRoot = run(
       "git --no-optional-locks rev-parse --show-toplevel",
@@ -33,7 +34,7 @@ export function getGitInfo(cwd) {
     // Sanitize ANSI from branch name
     branch = branch.replace(/\x1b/g, "");
 
-    let dirty = "";
+    let dirty: "" | "*" = "";
     if (branch) {
       try {
         const status = run("git --no-optional-locks status -s", gitRoot);

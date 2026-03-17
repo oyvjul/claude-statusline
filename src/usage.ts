@@ -2,22 +2,25 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execSync } from "node:child_process";
+import type { UsageData } from "./types.js";
 
 // --- Debug logging ---
 const DEBUG = !!process.env.CLAUDE_STATUSLINE_DEBUG;
-export function debugLog(...args) {
+export function debugLog(...args: unknown[]): void {
   if (DEBUG) process.stderr.write(`[statusline] ${args.join(" ")}\n`);
 }
 
 // --- Credentials ---
-export function getOAuthToken() {
+export function getOAuthToken(): string | null {
   try {
     // Try macOS Keychain first
     const creds = execSync(
       'security find-generic-password -s "Claude Code-credentials" -w',
       { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] },
     ).trim();
-    const j = JSON.parse(creds);
+    const j = JSON.parse(creds) as {
+      claudeAiOauth?: { accessToken?: string };
+    };
     if (j.claudeAiOauth?.accessToken) return j.claudeAiOauth.accessToken;
   } catch {
     /* fall through */
@@ -31,7 +34,9 @@ export function getOAuthToken() {
       debugLog("ERROR: credentials file permissions too open");
       return null;
     }
-    const j = JSON.parse(fs.readFileSync(credPath, "utf8"));
+    const j = JSON.parse(fs.readFileSync(credPath, "utf8")) as {
+      claudeAiOauth?: { accessToken?: string };
+    };
     if (j.claudeAiOauth?.accessToken) return j.claudeAiOauth.accessToken;
   } catch {
     /* fall through */
@@ -45,13 +50,13 @@ const USAGE_CACHE_DIR = path.join(os.homedir(), ".cache", "claude-statusline");
 const USAGE_CACHE = path.join(USAGE_CACHE_DIR, "usage-cache.json");
 const USAGE_CACHE_MAX_AGE = 180; // seconds (3 minutes)
 
-export async function fetchUsage() {
+export async function fetchUsage(): Promise<UsageData | null> {
   // Check cache
   try {
     const st = fs.statSync(USAGE_CACHE);
     const ageS = (Date.now() - st.mtimeMs) / 1000;
     if (ageS < USAGE_CACHE_MAX_AGE) {
-      return JSON.parse(fs.readFileSync(USAGE_CACHE, "utf8"));
+      return JSON.parse(fs.readFileSync(USAGE_CACHE, "utf8")) as UsageData;
     }
   } catch {
     /* no cache or unreadable */
@@ -73,7 +78,7 @@ export async function fetchUsage() {
       signal: AbortSignal.timeout(3000),
     });
     if (!resp.ok) return null;
-    const data = await resp.json();
+    const data = (await resp.json()) as UsageData;
 
     // Write cache
     fs.mkdirSync(USAGE_CACHE_DIR, { recursive: true, mode: 0o700 });
@@ -81,7 +86,7 @@ export async function fetchUsage() {
 
     return data;
   } catch (e) {
-    debugLog("fetch error:", e.message);
+    debugLog("fetch error:", e instanceof Error ? e.message : String(e));
     return null;
   }
 }

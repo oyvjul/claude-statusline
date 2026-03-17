@@ -4,6 +4,7 @@ import { renderCommitBar } from "./render.js";
 import { fetchUsage, debugLog } from "./usage.js";
 import { getGitInfo } from "./git.js";
 import { formatReset } from "./format.js";
+import type { StatusInput, RGB } from "./types.js";
 
 // --- Security ---
 process.umask(0o077);
@@ -20,7 +21,7 @@ const C_PCT = ansi(200, 215, 240); // ice white
 const C_RESET_TIME = ansi(90, 105, 130); // muted slate
 
 // COMMIT gradient (deep blue -> light cyan)
-const COMMIT_GRADIENT = [
+const COMMIT_GRADIENT: readonly RGB[] = [
   [60, 120, 200],
   [80, 145, 215],
   [100, 165, 230],
@@ -31,18 +32,18 @@ const COMMIT_GRADIENT = [
 
 const PIPE = ` ${C_PIPE}|${RESET} `;
 
-async function main() {
+async function main(): Promise<void> {
   // Read stdin
   let input = "";
   if (!process.stdin.isTTY) {
-    const chunks = [];
-    for await (const chunk of process.stdin) chunks.push(chunk);
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
     input = Buffer.concat(chunks).toString("utf8");
   }
 
-  let data = {};
+  let data: StatusInput = {};
   try {
-    data = JSON.parse(input);
+    data = JSON.parse(input) as StatusInput;
   } catch {
     /* empty or invalid */
   }
@@ -66,8 +67,9 @@ async function main() {
   const commitLetters = "COMMIT";
   let commitGradient = "";
   for (let i = 0; i < commitLetters.length; i++) {
-    const [r, g, b] = COMMIT_GRADIENT[i];
-    commitGradient += `\x1b[1;38;2;${r};${g};${b}m${commitLetters[i]}`;
+    const color = COMMIT_GRADIENT[i]!;
+    const [r, g, b] = color;
+    commitGradient += `\x1b[1;38;2;${r};${g};${b}m${commitLetters[i]!}`;
   }
   commitGradient += RESET;
 
@@ -142,9 +144,9 @@ async function main() {
   process.stdout.write(`${line1}\n${line2}\n${line3}\n`);
 }
 
-export default function () {
-  return main().catch((e) => {
-    debugLog("fatal:", e.message);
+export default function (): Promise<void> {
+  return main().catch((e: unknown) => {
+    debugLog("fatal:", e instanceof Error ? e.message : String(e));
     process.exit(1);
   });
 }
