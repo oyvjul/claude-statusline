@@ -1,6 +1,6 @@
 {
   "name": "claude-statusline",
-  "version": "1.0.0",
+  "version": "1.0.0-beta",
   "type": "module",
   "description": "Custom status line for Claude Code showing model, context, rate limits, git info, and working directory",
   "engines": {
