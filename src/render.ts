@@ -2,15 +2,28 @@ import { ansi, ansiBg, RESET } from "./utils/ansi.js";
 import type { RGB } from "./types.js";
 
 // Sub-character block elements (1/8 through 7/8)
-const BAR_BLOCKS = ["\u258f", "\u258e", "\u258d", "\u258c", "\u258b", "\u258a", "\u2589"];
+const BAR_BLOCKS = [
+  "\u258f",
+  "\u258e",
+  "\u258d",
+  "\u258c",
+  "\u258b",
+  "\u258a",
+  "\u2589",
+];
 
 /**
  * Get threshold color RGB based on percentage.
  */
 export function getThresholdColor(pct: number): RGB {
-  if (pct >= 90) return [90, 170, 255];
-  if (pct >= 75) return [60, 145, 230];
-  if (pct >= 50) return [45, 115, 195];
+  if (pct >= 90) {
+    return [90, 170, 255];
+  } else if (pct >= 75) {
+    return [60, 145, 230];
+  } else if (pct >= 50) {
+    return [45, 115, 195];
+  }
+
   return [35, 85, 155];
 }
 
@@ -30,7 +43,9 @@ export function renderBar(pct: number, width = 20, colorRgb?: RGB): string {
   let fillCells = Math.floor(fillTotal / 8);
   const subIndex = fillTotal % 8;
 
-  if (fillCells > width) fillCells = width;
+  if (fillCells > width) {
+    fillCells = width;
+  }
 
   let bar = "";
 
@@ -65,7 +80,11 @@ export function renderBadge(text: string, fgRgb: RGB, bgRgb: RGB): string {
 /**
  * Render a progress bar with centered text label overlay.
  */
-export function renderCommitBar(pct: number, label = "COMMIT", fillRgb: RGB = [45, 90, 160]): string {
+export function renderCommitBar(
+  pct: number,
+  label = "COMMIT",
+  fillRgb: RGB = [45, 90, 160],
+): string {
   const BAR_WIDTH = 24;
   pct = Math.max(0, Math.min(100, pct || 0));
 
@@ -80,11 +99,15 @@ export function renderCommitBar(pct: number, label = "COMMIT", fillRgb: RGB = [4
   const FG_EMPTY = "\x1b[1;38;2;120;120;120m";
 
   let fillCells = Math.floor((pct * BAR_WIDTH) / 100);
-  if (fillCells > BAR_WIDTH) fillCells = BAR_WIDTH;
-
   let bar = "";
+
+  if (fillCells > BAR_WIDTH) {
+    fillCells = BAR_WIDTH;
+  }
+
   for (let i = 0; i < BAR_WIDTH; i++) {
     const ch = barText[i] ?? " ";
+
     if (i < fillCells) {
       bar += BG_FILL + FG_FILL + ch;
     } else {
