@@ -5,7 +5,13 @@ import { execSync } from "node:child_process";
 import type { UsageData } from "../types.js";
 
 // API fetch with file cache
-const USAGE_CACHE_DIR = path.join(os.homedir(), ".cache", "claude-statusline");
+function getCacheDir(): string {
+  if (process.platform === "win32" && process.env.LOCALAPPDATA) {
+    return path.join(process.env.LOCALAPPDATA, "claude-statusline");
+  }
+  return path.join(os.homedir(), ".cache", "claude-statusline");
+}
+const USAGE_CACHE_DIR = getCacheDir();
 const USAGE_CACHE = path.join(USAGE_CACHE_DIR, "usage-cache.json");
 const USAGE_CACHE_MAX_AGE = 180; // seconds (3 minutes)
 
@@ -20,32 +26,34 @@ export function debugLog(...args: unknown[]): void {
 
 // Credentials
 export function getOAuthToken(): string | null {
-  try {
-    // Try macOS Keychain first
-    const creds = execSync(
-      'security find-generic-password -s "Claude Code-credentials" -w',
-      { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] },
-    ).trim();
+  if (process.platform === "darwin") {
+    try {
+      // Try macOS Keychain first
+      const creds = execSync(
+        'security find-generic-password -s "Claude Code-credentials" -w',
+        { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] },
+      ).trim();
 
-    const j = JSON.parse(creds) as {
-      claudeAiOauth?: { accessToken?: string };
-    };
+      const j = JSON.parse(creds) as {
+        claudeAiOauth?: { accessToken?: string };
+      };
 
-    if (j.claudeAiOauth?.accessToken) {
-      return j.claudeAiOauth.accessToken;
+      if (j.claudeAiOauth?.accessToken) {
+        return j.claudeAiOauth.accessToken;
+      }
+    } catch (e) {
+      debugLog(
+        "keychain lookup failed:",
+        e instanceof Error ? e.message : String(e),
+      );
     }
-  } catch (e) {
-    debugLog(
-      "keychain lookup failed:",
-      e instanceof Error ? e.message : String(e),
-    );
   }
 
   try {
     const credPath = path.join(os.homedir(), ".claude", ".credentials.json");
     const st = fs.statSync(credPath);
 
-    if ((st.mode & 0o077) !== 0) {
+    if (process.platform !== "win32" && (st.mode & 0o077) !== 0) {
       debugLog("ERROR: credentials file permissions too open");
       return null;
     }

@@ -11,7 +11,7 @@ fs.mkdirSync(CLAUDE_DIR, { recursive: true, mode: 0o700 });
 
 // Ensure settings.json has the statusLine config pointing directly to repo
 const settingsPath = path.join(CLAUDE_DIR, "settings.json");
-const expectedCommand = `node ${ENTRY_POINT}`;
+const expectedCommand = `node "${ENTRY_POINT}"`;
 const statusLineConfig = { type: "command", command: expectedCommand };
 
 let settings = {};

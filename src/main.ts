@@ -1,4 +1,5 @@
 import os from "node:os";
+import path from "node:path";
 import { RESET } from "./utils/ansi.js";
 import { renderCommitBar } from "./render.js";
 import { fetchUsage, debugLog } from "./utils/api.js";
@@ -67,7 +68,7 @@ function buildGitSection(
       : "";
     displayDir = relDir || ".";
     if (displayDir !== ".") {
-      displayDir = "." + relDir;
+      displayDir = "." + relDir.replace(/\\/g, "/");
     }
   } else {
     displayDir = cwd.startsWith(os.homedir())
@@ -115,7 +116,9 @@ async function main(): Promise<void> {
 
   // Fetch usage (async) + git info (sync) in parallel
   const usagePromise = fetchUsage();
-  const cwd = data.workspace?.current_dir || data.cwd || process.cwd();
+  const cwd = path.resolve(
+    data.workspace?.current_dir || data.cwd || process.cwd(),
+  );
   const gitInfo = getGitInfo(cwd);
   const usage = await usagePromise;
 

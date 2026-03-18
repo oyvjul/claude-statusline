@@ -12,9 +12,8 @@ export function run(cmd: string, cwd: string): string {
 
 export function getGitInfo(cwd: string): GitInfo | null {
   try {
-    const gitRoot = run(
-      "git --no-optional-locks rev-parse --show-toplevel",
-      cwd,
+    const gitRoot = path.resolve(
+      run("git --no-optional-locks rev-parse --show-toplevel", cwd),
     );
 
     if (!gitRoot) {
