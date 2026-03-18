@@ -23,6 +23,8 @@ The statusline command receives JSON from Claude Code via stdin with context win
 
 ## Rules
 
-- Never change the poll limit
-- Never use `any` typefor in TypeScript
+- **Never** change the poll limit
+- **Never use `any`** - Model types properly. Prefer generics, unions, or `unknown` + narrowing.
+- **Do not hide type errors** - Avoid `@ts-ignore`, `@ts-nocheck`, broad ESLint disables. If exception required, document _why_ and add removal condition.
+- **No unsafe type assertions** - Avoid `as SomeType` unless at a trusted boundary with justifying comment.
 - Always use curly braces for `if` statements, even single-line bodies
