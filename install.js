@@ -6,27 +6,8 @@ import { fileURLToPath } from "node:url";
 const REPO_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CLAUDE_DIR = path.join(os.homedir(), ".claude");
 const ENTRY_POINT = path.join(REPO_DIR, ".claude", "statusline-command.js");
-const OLD_SYMLINKS = ["statusline-command.js", "statusline-command.sh"];
-
 // Ensure ~/.claude/ exists
 fs.mkdirSync(CLAUDE_DIR, { recursive: true, mode: 0o700 });
-
-// Clean up old symlinks that point into this repo
-for (const file of OLD_SYMLINKS) {
-  const dest = path.join(CLAUDE_DIR, file);
-  try {
-    const st = fs.lstatSync(dest);
-    if (st.isSymbolicLink()) {
-      const target = fs.readlinkSync(dest);
-      if (target.startsWith(path.join(REPO_DIR, ".claude"))) {
-        fs.unlinkSync(dest);
-        console.log(`Removed old symlink: ${dest}`);
-      }
-    }
-  } catch {
-    /* doesn't exist, ignore */
-  }
-}
 
 // Ensure settings.json has the statusLine config pointing directly to repo
 const settingsPath = path.join(CLAUDE_DIR, "settings.json");
