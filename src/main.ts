@@ -6,9 +6,18 @@ import { getGitInfo } from "./utils/git.js";
 import { formatReset } from "./utils/format.js";
 import type { StatusInput, GitInfo, RGB } from "./types.js";
 import {
-  C_MODEL, C_CTX, C_REPO, C_DIR, C_PIPE, C_CURRENT, C_WEEKLY,
-  C_PCT, C_RESET_TIME, COMMIT_GRADIENT, PIPE,
-} from "./theme.js";
+  C_MODEL,
+  C_CTX,
+  C_REPO,
+  C_DIR,
+  C_PIPE,
+  C_CURRENT,
+  C_WEEKLY,
+  C_PCT,
+  C_RESET_TIME,
+  COMMIT_GRADIENT,
+  PIPE,
+} from "./utils/theme.js";
 
 // Security
 process.umask(0o077);
@@ -128,8 +137,20 @@ async function main(): Promise<void> {
   }
 
   // Assemble Lines 2-3
-  const line2 = buildUsageLine(usage?.five_hour?.utilization ?? 0, "current", C_CURRENT, [30, 110, 170], usage?.five_hour?.resets_at);
-  const line3 = buildUsageLine(usage?.seven_day?.utilization ?? 0, "weekly", C_WEEKLY, [25, 65, 130], usage?.seven_day?.resets_at);
+  const line2 = buildUsageLine(
+    usage?.five_hour?.utilization ?? 0,
+    "current",
+    C_CURRENT,
+    [30, 110, 170],
+    usage?.five_hour?.resets_at,
+  );
+  const line3 = buildUsageLine(
+    usage?.seven_day?.utilization ?? 0,
+    "weekly",
+    C_WEEKLY,
+    [25, 65, 130],
+    usage?.seven_day?.resets_at,
+  );
 
   process.stdout.write(`${line1}\n${line2}\n${line3}\n`);
 }

@@ -1,5 +1,5 @@
-import { ansi, RESET } from "./utils/ansi.js";
-import type { RGB } from "./types.js";
+import { ansi, RESET } from "./ansi.js";
+import type { RGB } from "../types.js";
 
 export const C_MODEL = ansi(100, 180, 255); // sky blue
 export const C_CTX = ansi(140, 210, 245); // ice cyan
@@ -13,8 +13,12 @@ export const C_RESET_TIME = ansi(90, 105, 130); // muted slate
 
 // COMMIT gradient (deep blue -> light cyan)
 export const COMMIT_GRADIENT: readonly RGB[] = [
-  [60, 120, 200], [80, 145, 215], [100, 165, 230],
-  [120, 185, 240], [140, 200, 245], [160, 215, 250],
+  [60, 120, 200],
+  [80, 145, 215],
+  [100, 165, 230],
+  [120, 185, 240],
+  [140, 200, 245],
+  [160, 215, 250],
 ];
 
 export const PIPE = ` ${C_PIPE}|${RESET} `;
