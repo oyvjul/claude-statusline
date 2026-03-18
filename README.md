@@ -7,7 +7,7 @@ A custom three-line status bar for [Claude Code](https://docs.anthropic.com/en/d
 ## Tested on
 
 - [x] macOS
-- [x] Windows Terminal
+- [ ] Windows Terminal
 - [ ] Linux
 
 ## What it shows
