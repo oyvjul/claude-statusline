@@ -8,6 +8,7 @@ export const C_DIR = ansi(100, 120, 155); // slate
 export const C_PIPE = ansi(60, 75, 100); // dark blue-gray
 export const C_CURRENT = ansi(70, 185, 225); // cyan-blue
 export const C_WEEKLY = ansi(120, 160, 210); // steel blue
+export const C_FABLE = ansi(220, 150, 95); // cold orange
 export const C_PCT = ansi(200, 215, 240); // ice white
 export const C_RESET_TIME = ansi(90, 105, 130); // muted slate
 

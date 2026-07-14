@@ -14,6 +14,7 @@ import {
   C_PIPE,
   C_CURRENT,
   C_WEEKLY,
+  C_FABLE,
   C_PCT,
   C_RESET_TIME,
   COMMIT_GRADIENT,
@@ -86,12 +87,13 @@ function buildUsageLine(
   labelColor: string,
   fillRgb: RGB,
   resetIso: string | undefined,
+  alwaysDate = false,
 ): string {
   const intPct = pct != null ? Math.round(pct) : 0;
   const padded = String(intPct).padStart(3, " ");
   const padding = " ".repeat(8 - label.length);
   const bar = `${labelColor}${label}${RESET}${padding}${renderCommitBar(intPct, "COMMIT", fillRgb)} ${C_PCT}${padded}%${RESET}`;
-  const resetFmt = formatReset(resetIso);
+  const resetFmt = formatReset(resetIso, alwaysDate);
   const resetPart = resetFmt ? `  ${C_RESET_TIME}${resetFmt}${RESET}` : "";
   return bar + resetPart;
 }
@@ -121,6 +123,9 @@ async function main(): Promise<void> {
   );
   const gitInfo = getGitInfo(cwd);
   const usage = await usagePromise;
+  const fable = usage?.limits?.find(
+    (l) => l.scope?.model?.display_name === "Fable",
+  );
 
   // Build sections
   const modelSection = buildModelSection(data);
@@ -153,9 +158,21 @@ async function main(): Promise<void> {
     C_WEEKLY,
     [25, 65, 130],
     usage?.seven_day?.resets_at,
+    true,
   );
+  const line4 = fable
+    ? buildUsageLine(
+        fable.percent,
+        "fable",
+        C_FABLE,
+        [160, 85, 30],
+        fable.resets_at,
+        true,
+      )
+    : null;
 
-  process.stdout.write(`${line1}\n${line2}\n${line3}\n`);
+  const lines = [line1, line2, line3, ...(line4 ? [line4] : [])];
+  process.stdout.write(lines.join("\n") + "\n");
 }
 
 export default function (): Promise<void> {

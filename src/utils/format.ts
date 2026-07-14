@@ -3,8 +3,14 @@
  * - < 2h: relative (↻1h32m)
  * - Same day: 12-hour am/pm
  * - Otherwise: lowercase month+day
+ *
+ * When `alwaysDate` is true, always render month+day+time (skips the relative
+ * and same-day-only branches) so the date is never dropped.
  */
-export function formatReset(isoDate: string | undefined | null): string {
+export function formatReset(
+  isoDate: string | undefined | null,
+  alwaysDate = false,
+): string {
   if (!isoDate) {
     return "";
   }
@@ -24,7 +30,7 @@ export function formatReset(isoDate: string | undefined | null): string {
 
   const diffMin = Math.floor(diffMs / 60000);
 
-  if (diffMin < 120) {
+  if (!alwaysDate && diffMin < 120) {
     const h = Math.floor(diffMin / 60);
     const m = diffMin % 60;
     return (
@@ -32,7 +38,7 @@ export function formatReset(isoDate: string | undefined | null): string {
     );
   }
 
-  if (reset.toDateString() === now.toDateString()) {
+  if (!alwaysDate && reset.toDateString() === now.toDateString()) {
     let hr = reset.getHours();
     const mn = String(reset.getMinutes()).padStart(2, "0");
     const ampm = hr >= 12 ? "pm" : "am";

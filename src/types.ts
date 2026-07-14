@@ -7,9 +7,17 @@ export interface StatusInput {
   context_window?: { used_percentage?: number };
 }
 
+export interface UsageLimit {
+  kind: string;
+  percent: number;
+  resets_at: string;
+  scope?: { model?: { id: string | null; display_name?: string } } | null;
+}
+
 export interface UsageData {
   five_hour?: { utilization: number; resets_at: string };
   seven_day?: { utilization: number; resets_at: string };
+  limits?: UsageLimit[];
 }
 
 export interface GitInfo {
